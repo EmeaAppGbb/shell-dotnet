@@ -1,0 +1,5 @@
+root = true
+
+[*.cs]
+# Suppress Aspire preview warnings globally
+dotnet_diagnostic.ASPIRECSHARPAPPS001.severity = none
