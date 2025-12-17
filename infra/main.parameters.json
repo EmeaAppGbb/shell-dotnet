@@ -8,11 +8,11 @@
       "location": {
         "value": "${AZURE_LOCATION}"
       },
-      "agenticApiExists": {
-        "value": "${SERVICE_AGENTIC_API_RESOURCE_EXISTS=false}"
+      "backendExists": {
+        "value": "${SERVICE_BACKEND_RESOURCE_EXISTS=false}"
       },
-      "agenticUiExists": {
-        "value": "${SERVICE_AGENTIC_UI_RESOURCE_EXISTS=false}"
+      "frontendExists": {
+        "value": "${SERVICE_FRONTEND_RESOURCE_EXISTS=false}"
       },
       "principalId": {
         "value": "${AZURE_PRINCIPAL_ID}"

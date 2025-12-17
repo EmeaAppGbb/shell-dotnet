@@ -9,23 +9,14 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
-@metadata({azd: {
-  type: 'location'
-  usageName: [
-    'OpenAI.GlobalStandard.gpt-5-mini,10'
-  ]}
-})
-param aiDeploymentsLocation string
-param agenticApiExists bool
-param agenticUiExists bool
+param backendExists bool
+param frontendExists bool
 
 @description('Id of the user or app to assign application roles')
 param principalId string
 
 @description('Principal type of user or app')
 param principalType string
-
-param deploymentName string = 'gpt5MiniDeployment'
 
 // Tags that should be applied to all resources.
 // 
@@ -51,72 +42,14 @@ module resources 'resources.bicep' = {
     tags: tags
     principalId: principalId
     principalType: principalType
-    agenticApiExists: agenticApiExists
-    agenticUiExists: agenticUiExists
-    aiFoundryProjectEndpoint: aiModelsDeploy.outputs.ENDPOINT
-    openAiEndpoint: aiModelsDeploy.outputs.OPENAI_ENDPOINT
-    deploymentName: deploymentName
-    imageDeploymentName: imageModelDeploy.outputs.deploymentName
+    backendExists: backendExists
+    frontendExists: frontendExists
   }
 }
 
-module aiModelsDeploy 'ai-project.bicep' = {
-  scope: rg
-  name: 'ai-project'
-  params: {
-    tags: tags
-    location: aiDeploymentsLocation
-    envName: environmentName
-    principalId: principalId
-    principalType: principalType
-    deployments: [
-      {
-        name: deploymentName
-        model: {
-          name: 'gpt-5-mini'
-          format: 'OpenAI'
-          version: '2025-08-07'
-        }
-        sku: {
-          name: 'GlobalStandard'
-          capacity: 10
-        }
-      }
-    ]
-  }
-}
-module aiSearchConnection 'modules/ai-search-conn.bicep' = {
-  scope: rg
-  name: 'ai-search-connection'
-  params: {
-    aiServicesName: aiModelsDeploy.outputs.aiServicesAccountName
-    aiServicesProjectName: aiModelsDeploy.outputs.aiServicesProjectName
-    aiSearchName: resources.outputs.aiSearchName
-  }
-}
 
-module imageModelDeploy 'modules/image-model.bicep' = {
-  scope: rg
-  name: 'image-model-deployment'
-  params: {
-    aiServicesAccountName: aiModelsDeploy.outputs.aiServicesAccountName
-    deploymentName: 'fluxKontextPro'
-    skuName: 'GlobalStandard'
-    skuCapacity: 1
-    format: 'Black Forest Labs'
-    modelName: 'FLUX.1-Kontext-pro'
-    modelVersion: '1'
-  }
-}
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = resources.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
-output AZURE_RESOURCE_AGENTIC_API_ID string = resources.outputs.AZURE_RESOURCE_AGENTIC_API_ID
-output AZURE_RESOURCE_AGENTIC_UI_ID string = resources.outputs.AZURE_RESOURCE_AGENTIC_UI_ID
+output AZURE_RESOURCE_BACKEND_ID string = resources.outputs.AZURE_RESOURCE_BACKEND_ID
+output AZURE_RESOURCE_FRONTEND_ID string = resources.outputs.AZURE_RESOURCE_FRONTEND_ID
 output AZURE_RESOURCE_AGENTIC_STORAGE_ID string = resources.outputs.AZURE_RESOURCE_AGENTIC_STORAGE_ID
-output AZURE_AI_PROJECT_ENDPOINT string = aiModelsDeploy.outputs.ENDPOINT
-output AZURE_RESOURCE_AI_PROJECT_ID string = aiModelsDeploy.outputs.projectId
-output AZURE_AI_SEARCH_ENDPOINT string = resources.outputs.AZURE_AI_SEARCH_ENDPOINT
-output AZURE_RESOURCE_SEARCH_ID string = resources.outputs.AZURE_RESOURCE_SEARCH_ID
-output AZURE_OPENAI_ENDPOINT string = aiModelsDeploy.outputs.OPENAI_ENDPOINT
-output AZURE_OPENAI_DEPLOYMENT_NAME string = deploymentName
-output AZURE_IMAGE_MODEL_DEPLOYMENT_NAME string = imageModelDeploy.outputs.deploymentName

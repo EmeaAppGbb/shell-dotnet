@@ -1,22 +1,22 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
-name: agentic-shell-dotnet
+name: shell-dotnet
 services:
-  agentic-api:
-    project: src/agentic-api
+  backend:
+    project: ./src/backend
     host: containerapp
     language: dotnet
-  agentic-ui:
-    project: src/agentic-ui
+  frontend:
+    project: ./src/frontend
     host: containerapp
     language: ts
 resources:
-  agentic-api:
+  backend:
     type: host.containerapp
     port: 8080
-  agentic-ui:
+  frontend:
     type: host.containerapp
     uses:
-      - agentic-api
+      - backend
     port: 80
 hooks:
   postprovision:

@@ -5,12 +5,8 @@ param location string = resourceGroup().location
 param tags object = {}
 
 
-param agenticApiExists bool
-param agenticUiExists bool
-param aiFoundryProjectEndpoint string
-param openAiEndpoint string
-param deploymentName string
-param imageDeploymentName string
+param backendExists bool
+param frontendExists bool
 
 @description('Id of the user or app to assign application roles')
 param principalId string
@@ -42,12 +38,12 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.1.1' =
     publicNetworkAccess: 'Enabled'
     roleAssignments:[
       {
-        principalId: agenticApiIdentity.outputs.principalId
+        principalId: backendIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
       }
       {
-        principalId: agenticUiIdentity.outputs.principalId
+        principalId: frontendIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
         roleDefinitionIdOrName: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
       }
@@ -91,8 +87,8 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
       }
     ]
     sqlRoleAssignmentsPrincipalIds: [
-      agenticApiIdentity.outputs.principalId
-      agenticUiIdentity.outputs.principalId
+      backendIdentity.outputs.principalId
+      frontendIdentity.outputs.principalId
       principalId
     ]
     sqlRoleDefinitions: [
@@ -103,86 +99,30 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
     capabilitiesToAdd: [ 'EnableServerless' ]
   }
 }
-module search 'br/public:avm/res/search/search-service:0.10.0' = {
-  name: 'ai-search'
-  params: {
-    name: '${abbrs.searchSearchServices}${resourceToken}'
-    location: location
-    tags: tags
-    sku: 'basic'
-    replicaCount: 1
-    managedIdentities: {
-      systemAssigned: true
-    }
-    roleAssignments: concat(
-      principalType == 'User' ? [
-        {  
-          principalId: principalId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'  
-        }
-        {  
-          principalId: principalId
-          principalType: 'User'
-          roleDefinitionIdOrName: 'Search Service Contributor'  
-        }
-      ] : [],
-      [
-        {
-          principalId: agenticApiIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-        {
-          principalId: agenticApiIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Search Service Contributor'
-        }
-        {
-          principalId: agenticUiIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Search Index Data Contributor'
-        }
-        {
-          principalId: agenticUiIdentity.outputs.principalId
-          principalType: 'ServicePrincipal'
-          roleDefinitionIdOrName: 'Search Service Contributor'
-        }
-      ]
-    )
-    disableLocalAuth: false
-    authOptions: {
-      aadOrApiKey: {
-        aadAuthFailureMode: 'http401WithBearerChallenge'
-      }
-    }
-    publicNetworkAccess: 'Enabled'
-  }
-}
 
-module agenticApiIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.2.1' = {
-  name: 'agenticApiidentity'
+module backendIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.2.1' = {
+  name: 'backendIdentity'
   params: {
-    name: '${abbrs.managedIdentityUserAssignedIdentities}agenticApi-${resourceToken}'
+    name: '${abbrs.managedIdentityUserAssignedIdentities}backend-${resourceToken}'
     location: location
   }
 }
-module agenticApiFetchLatestImage './modules/fetch-container-image.bicep' = {
-  name: 'agenticApi-fetch-image'
+module backendFetchLatestImage './modules/fetch-container-image.bicep' = {
+  name: 'backend-fetch-image'
   params: {
-    exists: agenticApiExists
-    name: 'agentic-api'
+    exists: backendExists
+    name: 'backend'
   }
 }
 
-module agenticApi 'br/public:avm/res/app/container-app:0.8.0' = {
-  name: 'agenticApi'
+module backend 'br/public:avm/res/app/container-app:0.8.0' = {
+  name: 'backend'
   params: {
-    name: 'agentic-api'
+    name: 'backend'
     ingressTargetPort: 8080
     corsPolicy: {
       allowedOrigins: [
-        'https://agentic-ui.${containerAppsEnvironment.outputs.defaultDomain}'
+        'https://backend.${containerAppsEnvironment.outputs.defaultDomain}'
       ]
       allowedMethods: [
         '*'
@@ -196,7 +136,7 @@ module agenticApi 'br/public:avm/res/app/container-app:0.8.0' = {
     }
     containers: [
       {
-        image: agenticApiFetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        image: backendFetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         name: 'main'
         resources: {
           cpu: json('0.5')
@@ -209,31 +149,11 @@ module agenticApi 'br/public:avm/res/app/container-app:0.8.0' = {
           }
           {
             name: 'AZURE_CLIENT_ID'
-            value: agenticApiIdentity.outputs.clientId
+            value: backendIdentity.outputs.clientId
           }
           {
             name: 'AZURE_COSMOS_ENDPOINT'
             value: cosmos.outputs.endpoint
-          }
-          {
-            name: 'AZURE_AI_SEARCH_ENDPOINT'
-            value: search.outputs.endpoint
-          }
-          {
-            name: 'AZURE_AI_PROJECT_ENDPOINT'
-            value: aiFoundryProjectEndpoint
-          }
-          {
-            name:'AZURE_OPENAI_ENDPOINT'
-            value: openAiEndpoint
-          }
-          {
-            name:'AZURE_OPENAI_DEPLOYMENT_NAME'
-            value: deploymentName
-          }
-          {
-            name:'AZURE_IMAGE_MODEL_DEPLOYMENT_NAME'
-            value: imageDeploymentName
           }
           {
             name: 'PORT'
@@ -244,60 +164,60 @@ module agenticApi 'br/public:avm/res/app/container-app:0.8.0' = {
     ]
     managedIdentities:{
       systemAssigned: false
-      userAssignedResourceIds: [agenticApiIdentity.outputs.resourceId]
+      userAssignedResourceIds: [backendIdentity.outputs.resourceId]
     }
     registries:[
       {
         server: containerRegistry.outputs.loginServer
-        identity: agenticApiIdentity.outputs.resourceId
+        identity: backendIdentity.outputs.resourceId
       }
     ]
     environmentResourceId: containerAppsEnvironment.outputs.resourceId
     location: location
-    tags: union(tags, { 'azd-service-name': 'agentic-api' })
+    tags: union(tags, { 'azd-service-name': 'backend' })
   }
 }
 
-resource agenticApibackendRoleAzureAIDeveloperRG 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(subscription().id, resourceGroup().id, agenticApiIdentity.name, '64702f94-c441-49e6-a78b-ef80e0188fee')
+resource backendRoleAzureAIDeveloperRG 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(subscription().id, resourceGroup().id, backendIdentity.name, '64702f94-c441-49e6-a78b-ef80e0188fee')
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '64702f94-c441-49e6-a78b-ef80e0188fee') 
-    principalId: agenticApiIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-resource agenticApibackendRoleCognitiveServicesUserRG 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(subscription().id, resourceGroup().id, agenticApiIdentity.name, 'a97b65f3-24c7-4388-baec-2e87135dc908')
+resource backendRoleCognitiveServicesUserRG 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(subscription().id, resourceGroup().id, backendIdentity.name, 'a97b65f3-24c7-4388-baec-2e87135dc908')
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908') 
-    principalId: agenticApiIdentity.outputs.principalId
+    principalId: backendIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-module agenticUiIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.2.1' = {
-  name: 'agenticUiidentity'
+module frontendIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.2.1' = {
+  name: 'frontendIdentity'
   params: {
-    name: '${abbrs.managedIdentityUserAssignedIdentities}agenticUi-${resourceToken}'
+    name: '${abbrs.managedIdentityUserAssignedIdentities}frontend-${resourceToken}'
     location: location
   }
 }
-module agenticUiFetchLatestImage './modules/fetch-container-image.bicep' = {
-  name: 'agenticUi-fetch-image'
+module frontendFetchLatestImage './modules/fetch-container-image.bicep' = {
+  name: 'frontend-fetch-image'
   params: {
-    exists: agenticUiExists
-    name: 'agentic-ui'
+    exists: frontendExists
+    name: 'frontend'
   }
 }
 
-module agenticUi 'br/public:avm/res/app/container-app:0.8.0' = {
-  name: 'agenticUi'
+module frontend 'br/public:avm/res/app/container-app:0.8.0' = {
+  name: 'frontend'
   params: {
-    name: 'agentic-ui'
-    ingressTargetPort: 3000
+    name: 'frontend'
+    ingressTargetPort: 80
     scaleMinReplicas: 1
     scaleMaxReplicas: 10
     secrets: {
@@ -306,7 +226,7 @@ module agenticUi 'br/public:avm/res/app/container-app:0.8.0' = {
     }
     containers: [
       {
-        image: agenticUiFetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+        image: frontendFetchLatestImage.outputs.?containers[?0].?image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
         name: 'main'
         resources: {
           cpu: json('0.5')
@@ -319,11 +239,11 @@ module agenticUi 'br/public:avm/res/app/container-app:0.8.0' = {
           }
           {
             name: 'AZURE_CLIENT_ID'
-            value: agenticUiIdentity.outputs.clientId
+            value: frontendIdentity.outputs.clientId
           }
           {
-            name: 'AGENT_API_URL'
-            value: 'https://agentic-api.${containerAppsEnvironment.outputs.defaultDomain}'
+            name: 'BACKEND_URL'
+            value: 'https://backend.${containerAppsEnvironment.outputs.defaultDomain}'
           }
           {
             name: 'PORT'
@@ -334,23 +254,20 @@ module agenticUi 'br/public:avm/res/app/container-app:0.8.0' = {
     ]
     managedIdentities:{
       systemAssigned: false
-      userAssignedResourceIds: [agenticUiIdentity.outputs.resourceId]
+      userAssignedResourceIds: [frontendIdentity.outputs.resourceId]
     }
     registries:[
       {
         server: containerRegistry.outputs.loginServer
-        identity: agenticUiIdentity.outputs.resourceId
+        identity: frontendIdentity.outputs.resourceId
       }
     ]
     environmentResourceId: containerAppsEnvironment.outputs.resourceId
     location: location
-    tags: union(tags, { 'azd-service-name': 'agentic-ui' })
+    tags: union(tags, { 'azd-service-name': 'frontend' })
   }
 }
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
-output AZURE_RESOURCE_AGENTIC_API_ID string = agenticApi.outputs.resourceId
-output AZURE_RESOURCE_AGENTIC_UI_ID string = agenticUi.outputs.resourceId
+output AZURE_RESOURCE_BACKEND_ID string = backend.outputs.resourceId
+output AZURE_RESOURCE_FRONTEND_ID string = frontend.outputs.resourceId
 output AZURE_RESOURCE_AGENTIC_STORAGE_ID string = '${cosmos.outputs.resourceId}/sqlDatabases/agentic-storage'
-output AZURE_AI_SEARCH_ENDPOINT string = search.outputs.endpoint
-output AZURE_RESOURCE_SEARCH_ID string = search.outputs.resourceId
-output aiSearchName string = search.outputs.name
