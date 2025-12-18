@@ -81,8 +81,12 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
     }
     sqlDatabases: [
       {
-        name: 'agentic-storage'
+        name: 'TemperatureDb'
         containers: [
+          {
+            name: 'Temperatures'
+            paths: [ '/location' ]
+          }
         ]
       }
     ]
@@ -93,7 +97,12 @@ module cosmos 'br/public:avm/res/document-db/database-account:0.8.1' = {
     ]
     sqlRoleDefinitions: [
       {
-        name: 'service-access-cosmos-sql-role'
+        name: 'cosmosdb-data-plane-contributor'
+        dataAction: [
+          'Microsoft.DocumentDB/databaseAccounts/*'
+          'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/items/*'
+          'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/*'
+        ]
       }
     ]
     capabilitiesToAdd: [ 'EnableServerless' ]
@@ -152,7 +161,7 @@ module backend 'br/public:avm/res/app/container-app:0.8.0' = {
             value: backendIdentity.outputs.clientId
           }
           {
-            name: 'AZURE_COSMOS_ENDPOINT'
+            name: 'ConnectionStrings__cosmos-db'
             value: cosmos.outputs.endpoint
           }
           {
@@ -271,3 +280,6 @@ output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.logi
 output AZURE_RESOURCE_BACKEND_ID string = backend.outputs.resourceId
 output AZURE_RESOURCE_FRONTEND_ID string = frontend.outputs.resourceId
 output AZURE_RESOURCE_AGENTIC_STORAGE_ID string = '${cosmos.outputs.resourceId}/sqlDatabases/agentic-storage'
+output AZURE_COSMOS_NAME string = cosmos.outputs.name
+output AZURE_COSMOS_RESOURCE_GROUP string = cosmos.outputs.resourceGroupName
+output BACKEND_URL string = 'https://backend.${containerAppsEnvironment.outputs.defaultDomain}'

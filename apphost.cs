@@ -1,18 +1,22 @@
-﻿#:sdk Aspire.AppHost.Sdk@13.0.0
-#:package Aspire.Hosting.JavaScript@13.0.0
+﻿#:sdk Aspire.AppHost.Sdk@13.1.0
+#:package Aspire.Hosting.JavaScript@13.1.0
+#:package Aspire.Hosting.Azure.CosmosDB@13.1.0
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var api = builder.AddCSharpApp("backend", "./src/backend");
+var cosmosName = builder.AddParameter("cosmosName");
+var cosmosResourceGroup = builder.AddParameter("cosmosResourceGroup");
 
-builder.AddJavaScriptApp("agentic-ui", "./src/frontend")
-    .WithRunScript("dev")
-    .WithNpm(installCommand: "ci")
+var cosmos = builder.AddAzureCosmosDB("cosmos-db")
+    .AsExisting(cosmosName, cosmosResourceGroup);
+
+var api = builder.AddCSharpApp("backend", "./src/backend")
+          .WithReference(cosmos);
+
+builder.AddViteApp("frontend", "./src/frontend")
     .WithEnvironment("BACKEND_URL", api.GetEndpoint("http"))
     .WithReference(api)
     .WaitFor(api)
-    .WithHttpEndpoint(env: "PORT")
-    .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
 builder.Build().Run();

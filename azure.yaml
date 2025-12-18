@@ -19,6 +19,15 @@ resources:
       - backend
     port: 80
 hooks:
+  predeploy:
+    posix:
+      shell: sh
+      run: ./infra/scripts/predeploy.sh
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/predeploy.ps1
+      continueOnError: false
   postprovision:
     posix:
       shell: sh

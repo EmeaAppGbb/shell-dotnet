@@ -53,3 +53,6 @@ output AZURE_CONTAINER_REGISTRY_ENDPOINT string = resources.outputs.AZURE_CONTAI
 output AZURE_RESOURCE_BACKEND_ID string = resources.outputs.AZURE_RESOURCE_BACKEND_ID
 output AZURE_RESOURCE_FRONTEND_ID string = resources.outputs.AZURE_RESOURCE_FRONTEND_ID
 output AZURE_RESOURCE_AGENTIC_STORAGE_ID string = resources.outputs.AZURE_RESOURCE_AGENTIC_STORAGE_ID
+output AZURE_COSMOS_NAME string = resources.outputs.AZURE_COSMOS_NAME
+output AZURE_COSMOS_RESOURCE_GROUP string = resources.outputs.AZURE_COSMOS_RESOURCE_GROUP
+output BACKEND_URL string = resources.outputs.BACKEND_URL
