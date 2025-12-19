@@ -22,6 +22,7 @@ dotnet run --project apphost.cs
 This will:
 - Start the **backend** API (ASP.NET Core) on port 5000
 - Start the **frontend** (Vue.js) on a dynamically assigned port
+- Start the **documentation** site (MkDocs) on a dynamically assigned port
 - Open the Aspire Dashboard at `http://localhost:15888`
 
 The frontend automatically connects to the backend via the configured proxy.
@@ -31,6 +32,33 @@ The frontend automatically connects to the backend via the configured proxy.
 - **Aspire Dashboard**: http://localhost:15888 (view logs, traces, and service status)
 - **Frontend**: Check the Aspire Dashboard for the assigned port
 - **Backend API**: http://localhost:5000
+- **Documentation**: Check the Aspire Dashboard for the assigned port
+
+## 📖 Documentation
+
+The project includes comprehensive documentation built with MkDocs and the Material theme. When running with Aspire, the documentation site starts automatically.
+
+### Accessing the Documentation
+
+1. Run the solution with `dotnet run --project apphost.cs`
+2. Open the Aspire Dashboard at http://localhost:15888
+3. Find the **docs** resource and click its endpoint URL
+
+### Documentation Contents
+
+- **Technical Documentation**: Architecture, infrastructure, integration guides, and technology stack
+- **Feature Requirements**: Functional Requirements Documents (FRDs) for all application features
+
+### First-Time Setup
+
+If the documentation doesn't start, you may need to set up the Python environment:
+
+```bash
+cd specs
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
 
 ### API Endpoints
 
@@ -84,6 +112,16 @@ The frontend automatically connects to the backend via the configured proxy.
 src/
 ├── backend/            # ASP.NET Core API
 └── frontend/           # Vue.js SPA
+
+specs/
+├── mkdocs.yml          # Documentation configuration
+├── requirements.txt    # Python dependencies
+└── docs/               # Documentation source
+    ├── architecture/   # System architecture docs
+    ├── infrastructure/ # Deployment & operations
+    ├── integration/    # APIs & databases
+    ├── technology/     # Stack & dependencies
+    └── features/       # Feature requirements (FRDs)
 
 infra/
 ├── main.bicep          # Azure infrastructure

@@ -1,6 +1,7 @@
 ﻿#:sdk Aspire.AppHost.Sdk@13.1.0
 #:package Aspire.Hosting.JavaScript@13.1.0
 #:package Aspire.Hosting.Azure.CosmosDB@13.1.0
+#:package Aspire.Hosting.Python@13.1.0
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -18,5 +19,11 @@ builder.AddViteApp("frontend", "./src/frontend")
     .WithReference(api)
     .WaitFor(api)
     .PublishAsDockerFile();
+
+// Documentation site using MkDocs
+builder.AddPythonModule("docs", "./specs", "mkdocs")
+    .WithArgs("serve", "--dev-addr", "0.0.0.0:8100")
+    .WithHttpEndpoint(targetPort: 8100, name: "http")
+    .ExcludeFromManifest();
 
 builder.Build().Run();

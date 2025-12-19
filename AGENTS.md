@@ -3,16 +3,20 @@
 ## Stack
 - **Backend**: .NET 10, ASP.NET Core Minimal API, Cosmos DB SDK 3.46, Aspire 13.1 — `src/backend/Program.cs`
 - **Frontend**: Vue 3.5 + TypeScript 5.7, Vite 7.2, Vue Router 4.5 — `src/frontend/`
+- **Documentation**: MkDocs with Material theme — `specs/`
 - **Infra**: Azure Container Apps, Cosmos DB (serverless), Bicep + AVM — `infra/`
 
 ## Commands
 ```bash
 # Dev (recommended)
-dotnet run --project apphost.cs    # Aspire: backend :5000, frontend :5173, dashboard :15888
+dotnet run --project apphost.cs    # Aspire: backend :5000, frontend :5173, docs :8100, dashboard :15888
 
 # Build
 cd src/backend && dotnet build
 cd src/frontend && npm install && npm run build
+
+# Documentation setup (first time)
+cd specs && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 
 # Test
 cd src/frontend && npm run lint && npm run test:unit && npm run test:e2e
@@ -32,6 +36,9 @@ azd down --purge  # Destroy all
 | Components | `src/frontend/src/components/` |
 | Routes | `src/frontend/src/router/index.ts` |
 | Infrastructure | `infra/resources.bicep` |
+| Documentation config | `specs/mkdocs.yml` |
+| Tech docs | `specs/docs/` |
+| Feature specs (FRDs) | `specs/features/` |
 
 ## Code Patterns
 
