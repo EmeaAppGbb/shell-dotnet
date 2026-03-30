@@ -27,7 +27,7 @@
 			"dockerDashComposeVersion": "none"
 		},
 		"ghcr.io/devcontainers/features/dotnet:2": {
-			"version": "9.0"
+			"version": "latest"
 		},
 		"ghcr.io/dotnet/aspire-devcontainer-feature/dotnetaspire:1": {
 			"version": "latest"
